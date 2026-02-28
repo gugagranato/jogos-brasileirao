@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Championship {
+  id        String   @id @default(cuid())
+  name      String
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isClosed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  games Game[]
+  prizes Prize[]
+}
+
+model Game {
+  id              String   @id @default(cuid())
+  championshipId  String
+  homeTeam        String
+  awayTeam        String
+  kickoffAt       DateTime
+  roundLabel      String?
+  venue           String?
+  isLastGame      Boolean  @default(false)
+  isFinalized     Boolean  @default(false)
+  finalHomeScore  Int?
+  finalAwayScore  Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  championship Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+  predictions  Prediction[]
+}
+
+model Player {
+  id        String   @id @default(cuid())
+  name      String
+  imageUrl  String?  @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  predictions Prediction[]
+}
+
+model Club {
+  id        String   @id @default(cuid())
+  name      String
+  iconUrl   String?  @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Prize {
+  id              String   @id @default(cuid())
+  championshipId  String
+  title           String
+  details         String?
+  value           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  championship Championship @relation(fields: [championshipId], references: [id], onDelete: Cascade)
+}
+
+model Prediction {
+  id         String   @id @default(cuid())
+  gameId     String
+  playerId   String
+  homeScore  Int
+  awayScore  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, playerId])
+}
