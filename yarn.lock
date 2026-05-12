@@ -727,6 +727,7 @@ __metadata:
 "@next/swc-darwin-arm64@npm:16.1.6":
   version: 16.1.6
   resolution: "@next/swc-darwin-arm64@npm:16.1.6"
+  checksum: fbb4971aab5fe617019519f86c0a9a77c158f8be368291014d393fd2859fb39e6b7dfaadad30dcd3eae8b1e86a9b612b9acd8a1445b86f13b4df194e64966a16
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
@@ -3791,6 +3792,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "my-app@workspace:."
   dependencies:
+    "@next/swc-darwin-arm64": 16.1.6
     "@prisma/adapter-mariadb": ^7.4.1
     "@prisma/client": ^7.4.1
     "@tailwindcss/postcss": ^4
