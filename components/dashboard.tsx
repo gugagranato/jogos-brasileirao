@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { PlayerAvatar } from "@/components/player-avatar";
 
-const formatDate = (value: string) => {
+const formatDate = (value: Date | string) => {
   const date = new Date(value);
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -16,7 +16,7 @@ const formatDate = (value: string) => {
   }).format(date);
 };
 
-const formatTime = (value: string) => {
+const formatTime = (value: Date | string) => {
   const date = new Date(value);
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -61,7 +61,7 @@ type GameData = {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  kickoffAt: string;
+  kickoffAt: Date;
   roundLabel: string | null;
   venue: string | null;
   isFinalized: boolean;

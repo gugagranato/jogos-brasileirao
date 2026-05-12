@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 const messageTimeoutMs = 4500;
 const defaultScore = 0;
 
-const formatGameMeta = (value: string) => {
+const formatGameMeta = (value: Date | string) => {
   const date = new Date(value);
   const datePart = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -37,7 +37,7 @@ type JogoDetalheProps = {
     id: string;
     homeTeam: string;
     awayTeam: string;
-    kickoffAt: string;
+    kickoffAt: Date;
     roundLabel: string | null;
     venue: string | null;
     isFinalized: boolean;
@@ -70,7 +70,7 @@ export const JogoDetalhe = ({ game, clubs }: JogoDetalheProps) => {
     awayScore: String(game.finalAwayScore ?? defaultScore),
   });
 
-  const showMessage = (type: MessageState["type"], text: string) => {
+  const showMessage = (type: NonNullable<MessageState>["type"], text: string) => {
     setMessage({ type, text });
     if (messageTimerRef.current) {
       window.clearTimeout(messageTimerRef.current);

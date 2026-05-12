@@ -46,7 +46,7 @@ type GameData = {
   championshipId: string;
   homeTeam: string;
   awayTeam: string;
-  kickoffAt: string;
+  kickoffAt: Date;
   roundLabel: string | null;
   venue: string | null;
   isLastGame: boolean;
@@ -66,8 +66,8 @@ type PrizeData = {
 type ChampionshipData = {
   id: string;
   name: string;
-  startsAt: string | null;
-  endsAt: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
   isClosed: boolean;
   games: GameData[];
   prizes: PrizeData[];
@@ -87,7 +87,7 @@ type MessageState = {
 
 type TabKey = "campeonatos" | "jogos" | "clubes" | "jogadores" | "premiacao";
 
-const formatDateTime = (value: string) => {
+const formatDateTime = (value: Date | string) => {
   const date = new Date(value);
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -97,14 +97,14 @@ const formatDateTime = (value: string) => {
   }).format(date);
 };
 
-const toDateInputValue = (value: string | null) => {
+const toDateInputValue = (value: Date | string | null) => {
   if (!value) return "";
   const date = new Date(value);
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * minuteMs);
   return localDate.toISOString().slice(0, dateInputLength);
 };
 
-const toDateTimeLocalValue = (value: string) => {
+const toDateTimeLocalValue = (value: Date | string) => {
   const date = new Date(value);
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * minuteMs);
   return localDate.toISOString().slice(0, dateTimeInputLength);
@@ -184,7 +184,7 @@ export const Cadastros = ({ championships, players, clubs, prizes }: CadastrosPr
     return new Map(clubs.map((club) => [club.name, club]));
   }, [clubs]);
 
-  const showMessage = (type: MessageState["type"], text: string) => {
+  const showMessage = (type: NonNullable<MessageState>["type"], text: string) => {
     setMessage({ type, text });
     if (messageTimerRef.current) {
       window.clearTimeout(messageTimerRef.current);
@@ -305,8 +305,9 @@ export const Cadastros = ({ championships, players, clubs, prizes }: CadastrosPr
     }
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setClubForm((prev) => ({ ...prev, iconUrl: reader.result }));
+      const result = reader.result;
+      if (typeof result === "string") {
+        setClubForm((prev) => ({ ...prev, iconUrl: result }));
       }
     };
     reader.readAsDataURL(file);
@@ -361,8 +362,9 @@ export const Cadastros = ({ championships, players, clubs, prizes }: CadastrosPr
     }
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setPlayerForm((prev) => ({ ...prev, imageUrl: reader.result }));
+      const result = reader.result;
+      if (typeof result === "string") {
+        setPlayerForm((prev) => ({ ...prev, imageUrl: result }));
       }
     };
     reader.readAsDataURL(file);

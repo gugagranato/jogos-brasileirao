@@ -21,7 +21,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { getPredictionPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
 
@@ -51,7 +50,7 @@ type GameData = {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  kickoffAt: string;
+  kickoffAt: Date;
   roundLabel: string | null;
   venue: string | null;
   isLastGame: boolean;
@@ -79,7 +78,7 @@ type MessageState = {
   text: string;
 } | null;
 
-const formatGameMeta = (value: string) => {
+const formatGameMeta = (value: Date | string) => {
   const date = new Date(value);
   const datePart = new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
@@ -124,8 +123,8 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
   const [isPredictionModalOpen, setIsPredictionModalOpen] = useState(false);
 
   const [predictionForm, setPredictionForm] = useState({
-    homeScore: "",
-    awayScore: "",
+    homeScore: String(defaultScore),
+    awayScore: String(defaultScore),
   });
 
   useEffect(() => {
@@ -179,17 +178,6 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     );
   }, [selectedGame, selectedPlayerId]);
 
-  useEffect(() => {
-    if (currentPrediction) {
-      setPredictionForm({
-        homeScore: String(currentPrediction.homeScore),
-        awayScore: String(currentPrediction.awayScore),
-      });
-      return;
-    }
-    setPredictionForm({ homeScore: "", awayScore: "" });
-  }, [currentPrediction]);
-
   const finalScore = useMemo(() => {
     if (!selectedGame || !selectedGame.isFinalized) return null;
     if (
@@ -242,7 +230,7 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     });
   }, [predictionsWithPoints, finalScore]);
 
-  const showMessage = (type: MessageState["type"], text: string) => {
+  const showMessage = (type: NonNullable<MessageState>["type"], text: string) => {
     setMessage({ type, text });
     if (messageTimerRef.current) {
       window.clearTimeout(messageTimerRef.current);
@@ -250,6 +238,19 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     messageTimerRef.current = window.setTimeout(() => {
       setMessage(null);
     }, messageTimeoutMs);
+  };
+
+  const resetPredictionForm = () => {
+    setPredictionForm({
+      homeScore: String(defaultScore),
+      awayScore: String(defaultScore),
+    });
+  };
+
+  const normalizeScoreInput = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly === "") return String(defaultScore);
+    return String(Number.parseInt(digitsOnly, 10));
   };
 
   const handleSavePrediction = async () => {
@@ -277,6 +278,7 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     }
 
     showMessage("success", data.message ?? "Palpite salvo.");
+    resetPredictionForm();
     router.refresh();
     setIsPredictionModalOpen(false);
   };
@@ -484,7 +486,10 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setIsPredictionModalOpen(true)}
+                onClick={() => {
+                  resetPredictionForm();
+                  setIsPredictionModalOpen(true);
+                }}
                 disabled={!selectedGameId}
               >
                 Registrar palpite
@@ -570,7 +575,10 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
                 <Label>Jogador</Label>
                 <Select
                   value={selectedPlayerId}
-                  onChange={(event) => setSelectedPlayerId(event.target.value)}
+                  onChange={(event) => {
+                    setSelectedPlayerId(event.target.value);
+                    resetPredictionForm();
+                  }}
                 >
                   <option value="" disabled>
                     Selecione o jogador
@@ -607,10 +615,11 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
                     className="w-20 text-center"
                     inputMode="numeric"
                     value={predictionForm.homeScore}
+                    onFocus={(event) => event.target.select()}
                     onChange={(event) =>
                       setPredictionForm((prev) => ({
                         ...prev,
-                        homeScore: event.target.value,
+                        homeScore: normalizeScoreInput(event.target.value),
                       }))
                     }
                     placeholder="0"
@@ -620,10 +629,11 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
                     className="w-20 text-center"
                     inputMode="numeric"
                     value={predictionForm.awayScore}
+                    onFocus={(event) => event.target.select()}
                     onChange={(event) =>
                       setPredictionForm((prev) => ({
                         ...prev,
-                        awayScore: event.target.value,
+                        awayScore: normalizeScoreInput(event.target.value),
                       }))
                     }
                     placeholder="0"

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export const PATCH = async (
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   const { id } = await Promise.resolve(params);
   const championship = await prisma.championship.update({
