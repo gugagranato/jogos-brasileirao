@@ -4,6 +4,9 @@ import { buildRanking } from "@/lib/ranking";
 
 export const dynamic = "force-dynamic";
 
+type PlayerRow = Awaited<ReturnType<typeof prisma.player.findMany>>[number];
+type ChampionshipRow = Awaited<ReturnType<typeof prisma.championship.findMany<{ include: { games: { include: { predictions: true } } } }>>>[number];
+
 export default async function Home() {
   const championships = await prisma.championship.findMany({
     orderBy: { createdAt: "desc" },
@@ -25,8 +28,8 @@ export default async function Home() {
     orderBy: { name: "asc" },
   });
 
-  const rankings = championships.map((championship: (typeof championships)[number]) => {
-    const playerEntries = players.map((player) => ({
+  const rankings = championships.map((championship: ChampionshipRow) => {
+    const playerEntries = players.map((player: PlayerRow) => ({
       playerId: player.id,
       name: player.name,
       imageUrl: player.imageUrl,
