@@ -63,7 +63,7 @@ export const PATCH = async (
     },
   });
 
-  const allFinalized = game.championship.games.every((item) => item.isFinalized);
+  const allFinalized = game.championship.games.every((item: { isFinalized: boolean }) => item.isFinalized);
 
   if (!game.championship.isClosed && game.isFinalized && (game.isLastGame || allFinalized)) {
     await prisma.championship.update({
