@@ -25,7 +25,7 @@ export default async function Home() {
     orderBy: { name: "asc" },
   });
 
-  const rankings = championships.map((championship) => {
+  const rankings = championships.map((championship: (typeof championships)[number]) => {
     const playerEntries = players.map((player) => ({
       playerId: player.id,
       name: player.name,
