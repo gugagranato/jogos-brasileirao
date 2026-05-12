@@ -240,46 +240,41 @@ export const Dashboard = ({ championships, clubs, rankings }: DashboardProps) =>
               return (
                 <div
                   key={game.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                  className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                 >
-                  <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                    <span>
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+                    <span className="truncate">
                       {formatDate(game.kickoffAt)} · {formatTime(game.kickoffAt)}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       {isNext && <Badge variant="success">Próximo</Badge>}
                       <Badge variant={game.isFinalized ? "success" : "outline"}>
                         {game.isFinalized ? "Finalizado" : "Pendente"}
                       </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
-                        <span className="flex items-center gap-2">
-                          <PlayerAvatar
-                            name={game.homeTeam}
-                            imageUrl={clubsByName.get(game.homeTeam)?.iconUrl ?? null}
-                          />
-                          <span>{game.homeTeam}</span>
-                        </span>
-                        <span className="text-slate-400">x</span>
-                        <span className="flex items-center gap-2">
-                          <PlayerAvatar
-                            name={game.awayTeam}
-                            imageUrl={clubsByName.get(game.awayTeam)?.iconUrl ?? null}
-                          />
-                          <span>{game.awayTeam}</span>
-                        </span>
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {game.roundLabel ?? "Rodada"} · {game.venue ?? "Estádio"}
-                      </span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <PlayerAvatar
+                        name={game.homeTeam}
+                        imageUrl={clubsByName.get(game.homeTeam)?.iconUrl ?? null}
+                      />
+                      <span className="truncate font-semibold text-slate-900">{game.homeTeam}</span>
                     </div>
-                    <div className="text-base font-semibold text-slate-900">
+                    <div className="shrink-0 px-2 text-base font-bold tabular-nums text-slate-900">
                       {scoreHome} x {scoreAway}
                     </div>
+                    <div className="flex min-w-0 flex-1 items-center justify-end gap-1.5">
+                      <span className="truncate text-right font-semibold text-slate-900">{game.awayTeam}</span>
+                      <PlayerAvatar
+                        name={game.awayTeam}
+                        imageUrl={clubsByName.get(game.awayTeam)?.iconUrl ?? null}
+                      />
+                    </div>
                   </div>
+                  <span className="truncate text-xs text-slate-500">
+                    {game.roundLabel ?? "Rodada"} · {game.venue ?? "Estádio"}
+                  </span>
                 </div>
               );
             })}
