@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Principais jogadores por clube brasileiro (Série A e B)
 const TEAM_PLAYERS: Record<string, string[]> = {
@@ -119,6 +118,7 @@ export const POST = async (
     );
   }
 
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const { id } = await Promise.resolve(params);
 
   const game = await prisma.game.findUnique({
