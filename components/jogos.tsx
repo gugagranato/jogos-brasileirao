@@ -4,13 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  FiAward,
   FiCalendar,
   FiCheckCircle,
   FiChevronLeft,
   FiChevronRight,
+  FiDownload,
   FiFrown,
+  FiImage,
   FiSave,
+  FiShare2,
   FiUsers,
+  FiX,
 } from "react-icons/fi";
 import { Crown } from "lucide-react";
 
@@ -23,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { getPredictionPoints } from "@/lib/points";
 import { cn } from "@/lib/utils";
+import { generateResultadoImage } from "@/lib/canvas-art";
 
 const messageTimeoutMs = 4500;
 const defaultScore = 0;
@@ -111,6 +117,7 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
   const router = useRouter();
   const [message, setMessage] = useState<MessageState>(null);
   const messageTimerRef = useRef<number | null>(null);
+  const lockedGameIdRef = useRef<string | null>(null);
 
   const [selectedChampionshipId, setSelectedChampionshipId] = useState(
     championships[0]?.id ?? ""
@@ -121,6 +128,10 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     players[0]?.id ?? ""
   );
   const [isPredictionModalOpen, setIsPredictionModalOpen] = useState(false);
+  const [arteImage, setArteImage] = useState<string | null>(null);
+  const [arteLoading, setArteLoading] = useState(false);
+  const [resultadoImage, setResultadoImage] = useState<string | null>(null);
+  const [resultadoLoading, setResultadoLoading] = useState(false);
 
   const [predictionForm, setPredictionForm] = useState({
     homeScore: String(defaultScore),
@@ -154,6 +165,15 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
   }, [selectedChampionship]);
 
   useEffect(() => {
+    if (lockedGameIdRef.current) {
+      const lockedIndex = orderedGames.findIndex((g) => g.id === lockedGameIdRef.current);
+      lockedGameIdRef.current = null;
+      if (lockedIndex >= 0) {
+        setSelectedGameIndex(lockedIndex);
+        setSelectedGameId(orderedGames[lockedIndex].id);
+        return;
+      }
+    }
     const defaultIndex = getDefaultGameIndex(orderedGames);
     const game = orderedGames[defaultIndex];
     setSelectedGameIndex(defaultIndex);
@@ -279,8 +299,85 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
 
     showMessage("success", data.message ?? "Palpite salvo.");
     resetPredictionForm();
+    lockedGameIdRef.current = selectedGameId;
     router.refresh();
     setIsPredictionModalOpen(false);
+  };
+
+  const handleGerarArte = async () => {
+    if (!selectedGameId) return;
+    setArteLoading(true);
+    try {
+      const response = await fetch(`/api/games/${selectedGameId}/arte`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) {
+        showMessage("error", data.error ?? "Erro ao gerar arte.");
+        return;
+      }
+      setArteImage(data.image);
+    } finally {
+      setArteLoading(false);
+    }
+  };
+
+  const handleDownloadArte = () => {
+    if (!arteImage || !selectedGame) return;
+    const a = document.createElement("a");
+    a.href = arteImage;
+    a.download = `arte-${selectedGame.homeTeam}-x-${selectedGame.awayTeam}.png`.replace(/\s+/g, "-").toLowerCase();
+    a.click();
+  };
+
+  const handleShareArte = async () => {
+    if (!arteImage || !selectedGame || !navigator.share) return;
+    const res = await fetch(arteImage);
+    const blob = await res.blob();
+    const file = new File([blob], "arte-jogo.png", { type: "image/png" });
+    await navigator.share({ files: [file], title: `${selectedGame.homeTeam} x ${selectedGame.awayTeam}` });
+  };
+
+  const handleGerarResultado = async () => {
+    if (!selectedGame || !selectedChampionship || !selectedGame.isFinalized) return;
+    setResultadoLoading(true);
+    try {
+      const image = await generateResultadoImage({
+        homeTeam: selectedGame.homeTeam,
+        awayTeam: selectedGame.awayTeam,
+        homeScore: selectedGame.finalHomeScore ?? 0,
+        awayScore: selectedGame.finalAwayScore ?? 0,
+        roundLabel: selectedGame.roundLabel,
+        kickoffAt: selectedGame.kickoffAt,
+        championshipName: selectedChampionship.name,
+        predictions: sortedPredictions.map((p) => ({
+          playerName: p.player.name,
+          playerImageUrl: p.player.imageUrl,
+          homeScore: p.homeScore,
+          awayScore: p.awayScore,
+          points: p.points ?? 0,
+        })),
+        homeClubIconUrl: clubsByName.get(selectedGame.homeTeam)?.iconUrl ?? null,
+        awayClubIconUrl: clubsByName.get(selectedGame.awayTeam)?.iconUrl ?? null,
+      });
+      setResultadoImage(image);
+    } finally {
+      setResultadoLoading(false);
+    }
+  };
+
+  const handleDownloadResultado = () => {
+    if (!resultadoImage || !selectedGame) return;
+    const a = document.createElement("a");
+    a.href = resultadoImage;
+    a.download = `resultado-${selectedGame.homeTeam}-x-${selectedGame.awayTeam}.png`.replace(/\s+/g, "-").toLowerCase();
+    a.click();
+  };
+
+  const handleShareResultado = async () => {
+    if (!resultadoImage || !selectedGame || !navigator.share) return;
+    const res = await fetch(resultadoImage);
+    const blob = await res.blob();
+    const file = new File([blob], "resultado.png", { type: "image/png" });
+    await navigator.share({ files: [file], title: `${selectedGame.homeTeam} x ${selectedGame.awayTeam}` });
   };
 
   const handleFinalizeGame = async () => {
@@ -303,6 +400,7 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
     }
 
     showMessage("success", "Jogo finalizado.");
+    lockedGameIdRef.current = selectedGameId;
     router.refresh();
   };
 
@@ -330,7 +428,7 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
       <div className="flex flex-col gap-3">
         <Badge className="w-fit bg-emerald-100 text-emerald-700">Jogos</Badge>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-semibold text-slate-900 font-[var(--font-display)]">
+          <h1 className="text-3xl font-(--font-display) text-slate-900">
             Jogos do campeonato
           </h1>
           <div className="w-full max-w-xs">
@@ -446,6 +544,24 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
                     Atualizar resultado
                   </Link>
                   <Button
+                    variant="outline"
+                    onClick={handleGerarArte}
+                    disabled={!selectedGameId || arteLoading}
+                  >
+                    <FiImage />
+                    {arteLoading ? "Gerando..." : "Gerar Arte"}
+                  </Button>
+                  {selectedGame.isFinalized && (
+                    <Button
+                      variant="outline"
+                      onClick={handleGerarResultado}
+                      disabled={resultadoLoading}
+                    >
+                      <FiAward />
+                      {resultadoLoading ? "Gerando..." : "Gerar Resultado"}
+                    </Button>
+                  )}
+                  <Button
                     onClick={handleFinalizeGame}
                     disabled={!selectedGameId || selectedGame?.isFinalized}
                   >
@@ -554,6 +670,64 @@ export const Jogos = ({ championships, players, clubs }: JogosProps) => {
           </CardContent>
         </Card>
       </section>
+
+      {resultadoImage && selectedGame && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-white p-4 shadow-2xl">
+            <button
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              onClick={() => setResultadoImage(null)}
+            >
+              <FiX size={18} />
+            </button>
+            <p className="text-sm font-semibold text-slate-700">Resultado gerado</p>
+            <img
+              src={resultadoImage}
+              alt={`Resultado ${selectedGame.homeTeam} x ${selectedGame.awayTeam}`}
+              className="w-full rounded-xl"
+            />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleDownloadResultado}>
+                <FiDownload /> Baixar
+              </Button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <Button className="flex-1" variant="outline" onClick={handleShareResultado}>
+                  <FiShare2 /> Compartilhar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {arteImage && selectedGame && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-white p-4 shadow-2xl">
+            <button
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              onClick={() => setArteImage(null)}
+            >
+              <FiX size={18} />
+            </button>
+            <p className="text-sm font-semibold text-slate-700">Arte gerada</p>
+            <img
+              src={arteImage}
+              alt={`Arte ${selectedGame.homeTeam} x ${selectedGame.awayTeam}`}
+              className="w-full rounded-xl object-cover"
+            />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleDownloadArte}>
+                <FiDownload /> Baixar
+              </Button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <Button className="flex-1" variant="outline" onClick={handleShareArte}>
+                  <FiShare2 /> Compartilhar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPredictionModalOpen && selectedGame && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">

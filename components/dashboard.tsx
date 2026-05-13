@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FiAward, FiCalendar } from "react-icons/fi";
+import { FiAward, FiCalendar, FiDownload, FiImage, FiShare2, FiX } from "react-icons/fi";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { generateTabelaImage } from "@/lib/canvas-art";
 
 const formatDate = (value: Date | string) => {
   const date = new Date(value);
@@ -111,6 +113,8 @@ export const Dashboard = ({ championships, clubs, rankings }: DashboardProps) =>
   const [selectedChampionshipId, setSelectedChampionshipId] = useState(
     championships[0]?.id ?? ""
   );
+  const [tabelaImage, setTabelaImage] = useState<string | null>(null);
+  const [tabelaLoading, setTabelaLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedChampionshipId && championships[0]) {
@@ -145,13 +149,44 @@ export const Dashboard = ({ championships, clubs, rankings }: DashboardProps) =>
   const gamesWindow = useMemo(() => getGamesWindow(games), [games]);
   const nextGameId = useMemo(() => getNextGameId(orderedGames), [orderedGames]);
 
+  const handleGerarTabela = async () => {
+    if (!selectedChampionship || ranking.length === 0) return;
+    setTabelaLoading(true);
+    try {
+      const image = await generateTabelaImage(selectedChampionship.name, ranking);
+      setTabelaImage(image);
+    } finally {
+      setTabelaLoading(false);
+    }
+  };
+
+  const handleDownloadTabela = () => {
+    if (!tabelaImage || !selectedChampionship) return;
+    const a = document.createElement("a");
+    a.href = tabelaImage;
+    a.download = `tabela-${selectedChampionship.name}.png`.replace(/\s+/g, "-").toLowerCase();
+    a.click();
+  };
+
+  const handleShareTabela = async () => {
+    if (!tabelaImage || !navigator.share) return;
+    const res = await fetch(tabelaImage);
+    const blob = await res.blob();
+    const file = new File([blob], "tabela.png", { type: "image/png" });
+    await navigator.share({ files: [file], title: "Tabela de Pontos" });
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
       <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FiAward /> Ranking do campeonato
+            <CardTitle className="flex items-center justify-between gap-2 text-base">
+              <span className="flex items-center gap-2"><FiAward /> Ranking do campeonato</span>
+              <Button size="sm" variant="outline" onClick={handleGerarTabela} disabled={tabelaLoading || ranking.length === 0}>
+                <FiImage />
+                {tabelaLoading ? "Gerando..." : "Gerar Tabela"}
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -281,6 +316,30 @@ export const Dashboard = ({ championships, clubs, rankings }: DashboardProps) =>
           </CardContent>
         </Card>
       </section>
+      {tabelaImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-white p-4 shadow-2xl">
+            <button
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              onClick={() => setTabelaImage(null)}
+            >
+              <FiX size={18} />
+            </button>
+            <p className="text-sm font-semibold text-slate-700">Tabela gerada</p>
+            <img src={tabelaImage} alt="Tabela de pontos" className="w-full rounded-xl" />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleDownloadTabela}>
+                <FiDownload /> Baixar
+              </Button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <Button className="flex-1" variant="outline" onClick={handleShareTabela}>
+                  <FiShare2 /> Compartilhar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

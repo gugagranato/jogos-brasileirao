@@ -3,34 +3,26 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-const defaultMysqlPort = 3306;
+const createClient = () => {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is required.");
 
-const createAdapter = () => {
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error("DATABASE_URL is required.");
+  if (url.startsWith("prisma://")) {
+    return new PrismaClient({ accelerateUrl: url });
   }
 
-  const url = new URL(databaseUrl);
-  const username = decodeURIComponent(url.username);
-  const password = decodeURIComponent(url.password);
-  const database = url.pathname.replace(/^\/+/, "");
-  if (!database) {
-    throw new Error("DATABASE_URL must include a database name.");
-  }
-  const port = url.port ? Number(url.port) : defaultMysqlPort;
-
-  return new PrismaMariaDb({
-    host: url.hostname,
-    port,
-    user: username,
-    password,
-    database,
+  const parsed = new URL(url);
+  const adapter = new PrismaMariaDb({
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 3306,
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database: parsed.pathname.replace(/^\/+/, ""),
   });
+  return new PrismaClient({ adapter });
 };
 
-export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({ adapter: createAdapter() });
+export const prisma = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

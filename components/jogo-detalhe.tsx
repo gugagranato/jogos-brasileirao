@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FiArrowLeft, FiCheckCircle, FiSave } from "react-icons/fi";
+import { FiArrowLeft, FiCheckCircle, FiDownload, FiImage, FiSave, FiShare2, FiX } from "react-icons/fi";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -65,6 +65,9 @@ export const JogoDetalhe = ({ game, clubs }: JogoDetalheProps) => {
   const messageTimerRef = useRef<number | null>(null);
   const clubsByName = useMemo(() => new Map(clubs.map((club) => [club.name, club])), [clubs]);
 
+  const [arteImage, setArteImage] = useState<string | null>(null);
+  const [arteLoading, setArteLoading] = useState(false);
+
   const [form, setForm] = useState({
     homeScore: String(game.finalHomeScore ?? defaultScore),
     awayScore: String(game.finalAwayScore ?? defaultScore),
@@ -78,6 +81,37 @@ export const JogoDetalhe = ({ game, clubs }: JogoDetalheProps) => {
     messageTimerRef.current = window.setTimeout(() => {
       setMessage(null);
     }, messageTimeoutMs);
+  };
+
+  const handleGerarArte = async () => {
+    setArteLoading(true);
+    try {
+      const response = await fetch(`/api/games/${game.id}/arte`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) {
+        showMessage("error", data.error ?? "Erro ao gerar arte.");
+        return;
+      }
+      setArteImage(data.image);
+    } finally {
+      setArteLoading(false);
+    }
+  };
+
+  const handleDownloadArte = () => {
+    if (!arteImage) return;
+    const a = document.createElement("a");
+    a.href = arteImage;
+    a.download = `arte-${game.homeTeam}-x-${game.awayTeam}.png`.replace(/\s+/g, "-").toLowerCase();
+    a.click();
+  };
+
+  const handleShareArte = async () => {
+    if (!arteImage || !navigator.share) return;
+    const res = await fetch(arteImage);
+    const blob = await res.blob();
+    const file = new File([blob], `arte-jogo.png`, { type: "image/png" });
+    await navigator.share({ files: [file], title: `${game.homeTeam} x ${game.awayTeam}` });
   };
 
   const handleSave = async () => {
@@ -110,12 +144,47 @@ export const JogoDetalhe = ({ game, clubs }: JogoDetalheProps) => {
         >
           <FiArrowLeft /> Voltar para jogos
         </Link>
-        {game.isFinalized ? (
-          <Badge variant="success">Finalizado</Badge>
-        ) : (
-          <Badge variant="outline">Pendente</Badge>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleGerarArte} disabled={arteLoading}>
+            <FiImage />
+            {arteLoading ? "Gerando arte..." : "Gerar Arte"}
+          </Button>
+          {game.isFinalized ? (
+            <Badge variant="success">Finalizado</Badge>
+          ) : (
+            <Badge variant="outline">Pendente</Badge>
+          )}
+        </div>
       </div>
+
+      {arteImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative flex w-full max-w-sm flex-col gap-3 rounded-2xl bg-white p-4 shadow-2xl">
+            <button
+              className="absolute right-3 top-3 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              onClick={() => setArteImage(null)}
+            >
+              <FiX size={18} />
+            </button>
+            <p className="text-sm font-semibold text-slate-700">Arte gerada</p>
+            <img
+              src={arteImage}
+              alt={`Arte ${game.homeTeam} x ${game.awayTeam}`}
+              className="w-full rounded-xl object-cover"
+            />
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={handleDownloadArte}>
+                <FiDownload /> Baixar
+              </Button>
+              {typeof navigator !== "undefined" && "share" in navigator && (
+                <Button className="flex-1" variant="outline" onClick={handleShareArte}>
+                  <FiShare2 /> Compartilhar
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {message && (
         <div

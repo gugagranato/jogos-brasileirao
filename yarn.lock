@@ -3804,6 +3804,7 @@ __metadata:
     eslint-config-next: 16.1.6
     lucide-react: ^0.575.0
     next: 16.1.6
+    openai: ^6.37.0
     prisma: ^7.4.1
     react: 19.2.3
     react-dom: 19.2.3
@@ -4051,6 +4052,23 @@ __metadata:
   version: 2.0.11
   resolution: "ohash@npm:2.0.11"
   checksum: c8e4d44c410d0c0347c374cfa03832abe4ffe4ba946aaaac0274a6d80d9e64d86a1bd06c6affa8ad83ff85b1ebce18b7b488ef24b2379ed5bcd5b37cb38816bc
+  languageName: node
+  linkType: hard
+
+"openai@npm:^6.37.0":
+  version: 6.37.0
+  resolution: "openai@npm:6.37.0"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.25 || ^4.0
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 398b446da0b0cfdf9d91f5178ecd079635e88356429e9d944be03133fc0b74cb010501f18acc6c41452eb88dce63f25173279ff6188995a7d3ad36188edf7fa6
   languageName: node
   linkType: hard
 
